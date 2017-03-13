@@ -1,0 +1,237 @@
+JST&KU Sentence Extractor and Aligner 2.0                    
+
+About 
+-----
+
+Features:
+
+ - Support for Japanese, English and Chinese input
+   (use juman as stemmer)
+ - Can process input that has not been splitted into sentences.
+   JKUSea first split articles (on both side) into parts based on user-defined delimiters,
+   then combine these parts into sentences that maximize matching results.
+ - Match noun compounds and expressions as defined in the input translation dictionary.
+
+Requirements
+------------
+
+- Perl 5.8 or higher
+- Python 2.7.9 or higher
+- Juman 7.0 or higher to lemmatize/stem Japanese
+  (tokenizing is also performed but it has no impact on sentence extraction and alignment)
+- Lemmatize.pm for some scripts in dict_tools that is included but must be installed separately (if needed).
+
+CPAN modules:
+
+ - Config::General (it is actually included so not required to install).
+
+
+Installation
+------------
+
+No installation required
+
+Execution
+---------
+
+```
+./align_sentences.pl [options] < [input file]
+
+ options:
+ 
+  --pairs                 LIST     language pairs (csv) for which sentence alignment will be performed
+                                   (default: 'zh_ja')
+  --output                FILE     common part of alignment result file names
+                                   (default: 'result')
+  --conf                  FILE     configuration file
+                                   (default: './align.conf')
+```
+
+Example
+```
+perl align_sentences.pl --output /data/result --pairs zh_ja en_ja < /data/input.txt > output.log
+```
+One result file will be generated for each of the specified language pairs, 
+based on the common name specified with the "output option", as follows:
+
+ - /data/result_zh-ja.txt
+ - /data/result_en-ja.txt
+ - /data/result_en-zh.txt
+
+Settings
+--------
+
+Settings are loaded from the config file specified with the --config option (default: align.conf)
+
+See align.conf comments for details
+
+Dictionaries
+-------------
+
+JKUSea needs Dictionary files for each language pairs.
+Dictionaries must be in the following format:
+
+Format for dictionary of language pair X-Y
+```  
+exprX   exprY1  exprY2  ... exprYn
+```
+where exprY1,2,n are translations of the same exprXand exprX, exprY1,2,n are all separated by tabs
+
+Sample for zh-ja dictionary
+```
+秋荞麦	秋蕎麦
+特别信使	仕立てる飛脚
+耽误	手遅れだ	遅延する	立ち後れる	立ち遅れる	手後	手後れる	手後だ	手後れるだ
+犬颈总	イヌ頸
+事先布置	お膳立する	お膳立てする	手回しする
+小肠黏膜下层	小腸粘膜下組織
+箕乡町	箕郷町
+人脸区域	顔領域
+亲睦	親和する	懇ろだ	むつまじい
+扩充的二进制编码的十进制交换码	EBCDICコード	EBCDIC符号
+```
+
+For better matching results, all entries should be normalized as follows (JKUSea will perform the same transformations on input articles) :
+
+ - UTF8 alphanumeric characters, symbols, punctuations -> corresponding ascii character
+ - lemmatize or stem (English and Japanese only)
+
+Tools are provided to perform the above transformations and merge entries with the same key:
+```
+dict_tools/format_dictionary_JC.sh [input dictionary file] [output dictionary file]
+dict_tools/format_dictionary_EC.sh [input dictionary file] [output dictionary file]
+dict_tools/format_dictionary_EJ.sh [input dictionary file] [output dictionary file]
+```
+
+Input dictionary for these scripts must be in tsv format.
+duplicate keys are allowed, e.g.
+```
+zh-expr1 ja-expr1
+zh-expr2 ja-expr2-1
+zh-expr3 ja-expr3
+zh-expr2 ja-expr2-2
+```
+
+Input
+-----
+
+The input file should contain article pairs in the following format 
+
+Format:
+```
+# <article1 id>
+ja: <Japanese sentence 1>
+ja: <Japanese sentence 2>
+ja: <Japanese sentence 3>
+zh: <Chinese sentence 1>
+zh: <Chinese sentence 2>
+en: <English sentence 1>
+en: <English sentence 2>
+# <article2 id>
+ja: ...
+zh: ...
+en: ...
+...
+```
+
+Every article does not need to have sentences in all languages.
+Only articles with sentences in languages specified by the --pairs option will be aligned.
+
+Input articles may or may not be already splitted into sentences.
+Even if input article is already splitted into sentences, JKUSea can be configured to split sentences in smaller parts.
+This is useful when processing data using delimiters other than periods (,;: etc.) 
+
+Sample (splitted into sentences):
+```
+# 20110922_20110000878.xml
+ja: 歴史で最も殺傷力ある１９１８年のスペインインフルエンザウイルス大流行はＨ１Ｎ１亜型インフルエンザウイルスによって引き起こし、その後にＨ１Ｎ１亜型インフルエンザは人群で流行していて、２０世紀２０年代から５０年代まで数回爆発を起こった。
+ja: １９５７年、Ｈ１Ｎ１インフルエンザウイルスはなくなって、Ｈ２Ｎ２亜型インフルエンザは代わりにインフルエンザウイルス大流行を起こった。
+ja: １９６８年Ｈ３Ｎ２亜型インフルエンザは１９５７年から１１年間流行した、Ｈ２Ｎ２亜型インフルエンザの代わりに、２０世紀の第三回インフルエンザウイルス大流行を起こった。
+ja: その後、Ｈ３Ｎ２亜型インフルエンザは人群で存在している。
+ja: １９７７年Ｈ１Ｎ１亜型インフルエンザは２０年間沈黙してから、再発して流行を起こった。
+ja: その抗原性は１９５０年のＨ１Ｎ１ウイルスと類似して、ＷＨＯ報告では今回のインフルエンザをインフルエンザウイルス大流行を認めていない、大規模の流行と称する。
+ja: ＨＪＮＪ亜型インフルエンザウイルスはＨ３Ｎ２とＢ型インフルエンザウイルスと共流行している。
+zh: 历史上最具杀伤力的1918年西班牙流感大流行由H1N1亚型流感病毒引起[1]，随后H1N1亚型流感继续在人群中流行，并且在20世纪20年代到 50年代又引起了数次暴发[2-3]。
+zh: 1957年，H1N1流感病毒消失，被H2N2亚型流感病毒取代并引起了流感大流行[4]。
+zh: 1968年H3N2亚型流感病毒取代了自1957年以来仅流行了11年的H2N2亚型流感病毒，并导致20世纪第三次流感大流行[5]，此后， H3N2亚型流感病毒一直在人群中存在。
+zh: 而1977年H1N1亚型流感病毒在沉寂20年后，再次出现并引起流行，其抗原性与1950年的H1N1病毒类似，不过WHO报告中并没有将此次流感列为一次流感大流行，仅称为较大规模的流行，HJNJ亚型流感病毒此后与H3N2和乙型流感病毒共同在人群中流行[6]。
+# 20110922_20110000879
+ja: xxxx
+ja: yyyy
+zh: XXXX
+zh: YYYY
+# 20110922_20110000900.xml
+...
+```
+
+Sample (not splitted into sentences):
+```
+# 20110922_20110000878_c.xml
+ja: 歴史で最も殺傷力ある１９１８年のスペインインフルエンザウイルス大流行はＨ１Ｎ１亜型インフルエンザウイルスによって引き起こし、その後にＨ１Ｎ１亜型インフルエンザは人群で流行していて、２０世紀２０年代から５０年代まで数回爆発を起こった。１９５７年、Ｈ１Ｎ１インフルエンザウイルスはなくなって、Ｈ２Ｎ２亜型インフルエンザは代わりにインフルエンザウイルス大流行を起こった。１９６８年Ｈ３Ｎ２亜型インフルエンザは１９５７年から１１年間流行した、Ｈ２Ｎ２亜型インフルエンザの代わりに、２０世紀の第三回インフルエンザウイルス大流行を起こった。その後、Ｈ３Ｎ２亜型インフルエンザは人群で存在している。１９７７年Ｈ１Ｎ１亜型インフルエンザは２０年間沈黙してから、再発して流行を起こった。その抗原性は１９５０年のＨ１Ｎ１ウイルスと類似して、ＷＨＯ報告では今回のインフルエンザをインフルエンザウイルス大流行を認めていない、大規模の流行と称する。ＨＪＮＪ亜型インフルエンザウイルスはＨ３Ｎ２とＢ型インフルエンザウイルスと共流行している。
+zh: 历史上最具杀伤力的1918年西班牙流感大流行由H1N1亚型流感病毒引起[1]，随后H1N1亚型流感继续在人群中流行，并且在20世纪20年代到 50年代又引起了数次暴发[2-3]。1957年，H1N1流感病毒消失，被H2N2亚型流感病毒取代并引起了流感大流行[4]。1968年H3N2亚型流感病毒取代了自1957年以来仅流行了11年的H2N2亚型流感病毒，并导致20世纪第三次流感大流行[5]，此后， H3N2亚型流感病毒一直在人群中存在。而1977年H1N1亚型流感病毒在沉寂20年后，再次出现并引起流行，其抗原性与1950年的H1N1病毒类似，不过WHO报告中并没有将此次流感列为一次流感大流行，仅称为较大规模的流行，HJNJ亚型流感病毒此后与H3N2和乙型流感病毒共同在人群中流行[6]。
+```
+
+Output
+------
+
+Format:
+```
+# <article id>-[JEC]-<sentence pair index> score=<matching score of this sentence pair>
+zh: <Chinese sentence 1>
+ja: <Japanese sentence 1>
+# <article id>-[JEC]-<sentence pair index> score=<matching score of this sentence pair>
+zh: <Chinese sentence 2>
+ja: <Japanese sentence 2>
+```
+
+"article id" is obtained from the input file comment lines.
+
+languages tag [JEC] is set as follows
+
+ * J: the input article contained sentences in Japanese
+ * E: the input article contained sentences in English
+ * C: the input article contained sentences in Chinese
+For example:
+ * JC: input article only contains sentences in Japanese and Chinese, no English.
+ * JEC: input article contains sentences in Japanese Chinese and English.
+
+"score" expresses how much the sentence pair matches. 
+
+```
+score(X,Y) = (number of characters in expressions matched in X + number of characters in expressions matched in Y) 
+             / (number of characters in X + number of characters in Y)
+0 = zero match
+1 = full match
+```
+alignment algorithm tries to maximize the total matching score of all sentences in one article
+
+
+Sample:
+```
+# 20110922_20110000878_c-JC-1 score=0.760204081632653
+zh: 历史上最具杀伤力的1918年西班牙流感大流行由H1N1亚型流感病毒引起[1]，随后H1N1亚型流感继续在人群中流行，并且在20世纪20年代到 50年代又引起了数次暴发[2-3]。
+ja: 歴史で最も殺傷力ある１９１８年のスペインインフルエンザウイルス大流行はＨ１Ｎ１亜型インフルエンザウイルスによって引き起こし、その後にＨ１Ｎ１亜型インフルエンザは人群で流行していて、２０世紀２０年代から５０年代まで数回爆発を起こった。
+# 20110922_20110000878_c-JC-2 score=0.821782178217822
+zh: 1957年，H1N1流感病毒消失，被H2N2亚型流感病毒取代并引起了流感大流行[4]。
+ja: １９５７年、Ｈ１Ｎ１インフルエンザウイルスはなくなって、Ｈ２Ｎ２亜型インフルエンザは代わりにインフルエンザウイルス大流行を起こった。
+# 20110922_20110000878_c-JC-3 score=0.628571428571429
+zh: 1968年H3N2亚型流感病毒取代了自1957年以来仅流行了11年的H2N2亚型流感病毒，并导致20世纪第三次流感大流行[5]，
+ja: １９６８年Ｈ３Ｎ２亜型インフルエンザは１９５７年から１１年間流行した、Ｈ２Ｎ２亜型インフルエンザの代わりに、２０世紀の第三回インフルエンザウイルス大流行を起こった。
+# 20110922_20110000878_c-JC-4 score=0.652173913043478
+zh: 此后， H3N2亚型流感病毒一直在人群中存在。
+ja: その後、Ｈ３Ｎ２亜型インフルエンザは人群で存在している。
+# 20110922_20110000878_c-JC-5 score=0.561971830985916
+zh: 而1977年H1N1亚型流感病毒在沉寂20年后，再次出现并引起流行，
+ja: １９７７年Ｈ１Ｎ１亜型インフルエンザは２０年間沈黙してから、再発して流行を起こった。
+# 20110922_20110000878_c-JC-6 score=0.636434108527132
+zh: 其抗原性与1950年的H1N1病毒类似，不过WHO报告中并没有将此次流感列为一次流感大流行，仅称为较大规模的流行，
+ja: その抗原性は１９５０年のＨ１Ｎ１ウイルスと類似して、ＷＨＯ報告では今回のインフルエンザをインフルエンザウイルス大流行を認めていない、大規模の流行と称する。
+# 20110922_20110000878_c-JC-7 score=0.810126582278481
+zh: HJNJ亚型流感病毒此后与H3N2和乙型流感病毒共同在人群中流行[6]。
+ja: ＨＪＮＪ亜型インフルエンザウイルスはＨ３Ｎ２とＢ型インフルエンザウイルスと共流行している。
+```
+
+
+Contact
+---------
+bourlon@pa.jst.jp
